@@ -10,9 +10,11 @@ import optparse
 import glob
 import imp
 import traceback
+import logging
 
 class Showc:
 	def __init__(self, module): #module must contain a Client class
+		logging.basicConfig(filename='showc.log',level=logging.DEBUG)
 		self.id = random.randint(1, 10000)
 		if module is not None:
 			try:
@@ -34,6 +36,12 @@ class Showc:
 		self.shell_transport.init_session(self.id, self.columns, self.rows)
 		
 		signal.signal(signal.SIGINT, self.signal_handler)
+	
+	def log_debug(self, msg):
+		logging.debug("showc - " + msg)	
+
+	def log_info(self, msg):
+		logging.info("showc - " + msg)
 	
 	#update screen if not empty
 	def update(self, screen):

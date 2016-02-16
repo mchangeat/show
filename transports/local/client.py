@@ -5,7 +5,6 @@ import threading
 import tempfile
 import time
 
-
 class Client(ShellTransportc):
 	def __init__(self, showc, id):
 		self.showc = showc
@@ -26,13 +25,15 @@ class Client(ShellTransportc):
 		self.clock = threading.Thread(target=self._update_time, args=())
 		self.clock.daemon = True
 		self.clock.start()
-		
+		self.showc.log_info("local transport started")
 
 	def _update_time(self):
 		time.sleep(1)
 		while True:
+			self.showc.log_debug("wait for message")
 			self.rdtoc = open(self.dtoc, 'r')
 			input = self.rdtoc.read()
+			self.showc.log_debug("input:"+input)
 			self.rdtoc.close()
 			self.showc.update(input)
 	

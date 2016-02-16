@@ -6,9 +6,11 @@ import optparse
 import glob
 import sys
 import imp
+import logging
 
 class Showd:
 	def __init__(self,cmd=None, module=None): #module must contain a Server class
+		logging.basicConfig(filename='showd.log',level=logging.DEBUG)
 		self.multi = Multiplex(cmd)
 		self.sessions = {}
 		self.last_dump = ""
@@ -33,17 +35,21 @@ class Showd:
 		if id in self.sessions:
 			#term = self.sessions[id]
 			#TODO : update dimensions
-			print "existing session"
+			self.log_info("existing session")
 		else:
 			term = self._create_session(id, columns, rows)
-			print "new connection id:"+id+" rows:"+str(rows)+" cols:"+str(columns)
+			self.log_info("new connection id:"+id+" rows:"+str(rows)+" cols:"+str(columns))
 			server_instance = self.module.ServerInstance(self, id)
 			server_instance.start()
 		
+	def log_debug(self, msg):
+		logging.debug("showd - " + msg)	
+
+	def log_info(self, msg):
+		logging.info("showd - " + msg)
 	
 	def update(self, id, input):
 		ret = result = ""
-		
 		if id in self.sessions:
 			term = self.sessions[id]
 		
@@ -60,6 +66,7 @@ class Showd:
 			
 			#check if something new has appeared on the screen
 			#if not return nothing
+			ret = result
 			if result == self.last_dump:
 				ret = ""
 			self.last_dump = result

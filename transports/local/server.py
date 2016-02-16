@@ -28,7 +28,7 @@ class Server(ShellTransportd):
 			self.rtube = open(self.tube, 'r')
 			r = self.rtube.read()
 			self.rtube.close()
-			id = r.split(",")[0]
+			id = r.split(",")[0].strip()
 			rows = int(r.split(",")[1])
 			columns = int(r.split(",")[2])
 			
@@ -62,11 +62,14 @@ class ServerInstance:
 		clock_inputs.daemon = True
 		clock_inputs.start()
 		
+		self.showd.log_info("local transport started")
+		
 	def _read_inputs(self):
 		
 		while True:
 			self.rctod = open(self.ctod, 'r')
 			r = self.rctod.read()
+			self.showd.log_debug("read :"+r)
 			self.rctod.close()
 			
 			self.lock.acquire()
