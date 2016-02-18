@@ -13,10 +13,6 @@ class Client(ShellTransportc):
 		self.dtoc = tempfile.gettempdir() + os.path.sep + "dtoc-" + str(id)
 		
 		try:
-		#	if os.path.exists(self.tube) == False:
-		#		os.mkfifo(self.tube)
-			#if os.path.exists(self.dtoc) == False:
-		#		os.mkfifo(self.dtoc)
 			if os.path.exists(self.ctod) == False:
 				os.mkfifo(self.ctod)
 		except OSError:
@@ -33,7 +29,7 @@ class Client(ShellTransportc):
 			self.showc.log_debug("wait for message")
 			self.rdtoc = open(self.dtoc, 'r')
 			input = self.rdtoc.read()
-			self.showc.log_debug("input:"+input)
+			#self.showc.log_debug("input:"+input)
 			self.rdtoc.close()
 			self.showc.update(input)
 	
@@ -45,10 +41,14 @@ class Client(ShellTransportc):
 	
 	def init_session(self, id, columns, rows):
 		self.rtube = open(self.tube, 'w+')
-		self.rtube.write(str(id)+","+str(columns)+","+str(rows))
+		self.rtube.write(str(id)+","+str(rows)+","+str(columns))
 		self.rtube.close()
 		
 
-#if __name__ == '__main__':
-#	showc = ShellLocalTransportc(None)
-#	showc.clock.join()
+	def close(self):
+		self.showc.log_info("close")
+		try:
+			self.rctod.close()
+			self.rdtoc.close()
+		except OSError:
+			pass

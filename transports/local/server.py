@@ -48,9 +48,6 @@ class ServerInstance:
 			if os.path.exists(self.dtoc) == False:
 				os.mkfifo(self.dtoc)
 				os.chmod(self.dtoc, 0666)
-			#if os.path.exists(self.ctod) == False:
-			#	os.mkfifo(self.ctod)
-			#	os.chmod(self.ctod, 0666)
 		except OSError:
 			pass
 			
