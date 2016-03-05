@@ -11,16 +11,17 @@ import glob
 import imp
 import traceback
 import logging
+from shell_transport import TransportMessage
 
 class Showc:
-	def __init__(self, module, id): #module must contain a Client class
+	def __init__(self, module, sessionId, cmd): #module must contain a Client class
 		logging.basicConfig(filename='showc.log',level=logging.DEBUG)
-		self.id = id
-		if self.id is None:
-			self.id = random.randint(1, 10000)
+		self.sessionId = sessionId
+		self.cmd = cmd
+		self.clientId = random.randint(1, 100000)
 		if module is not None:
 			try:
-				self.shell_transport = module.Client(self, self.id)
+				self.shell_transport = module.Client(self, self.clientId, self.sessionId)
 			except:
 				print "Wrong transport module, dying..."
 				traceback.print_exc(file=sys.stdout)
@@ -34,9 +35,6 @@ class Showc:
 		r, c = os.popen('stty size', 'r').read().split()
 		self.rows = int(r) -1
 		self.columns = int(c)
-		
-		#first send the id, and the number of rows and columns of the current terminal
-		self.shell_transport.init_session(self.id, self.columns, self.rows)
 		
 		signal.signal(signal.SIGINT, self.signal_handler)
 	
@@ -64,6 +62,9 @@ class Showc:
 			self.screen.refresh()
 	
 	def start(self):
+		#first send the id, and the number of rows and columns of the current terminal
+		self.shell_transport.init_session(self.columns, self.rows, self.cmd)
+		
 		os.environ.setdefault('ESCDELAY', '25')
 		self.screen = curses.initscr() 
 		curses.noecho() 
@@ -141,14 +142,16 @@ class Showc:
 			
 				self.shell_transport.send(self.get_input())
 		finally:
-			curses.nocbreak();
-			self.screen.keypad(0);
-			curses.echo()
-			curses.endwin()
-			self.shell_transport.close()
+			self.close_shell()
 		
-		print "Leaving session #" + str(self.id)
+		print "Leaving session"
 	
+	def close_shell(self):
+		curses.nocbreak();
+		self.screen.keypad(0);
+		curses.echo()
+		curses.endwin()
+		self.shell_transport.close()
 	
 	#return input and empty the current input buffer
 	def get_input(self):
@@ -170,8 +173,8 @@ if __name__ == '__main__':
 	parser = optparse.OptionParser()
 	parser.add_option("-l", "--list", dest="list",action="store_true", help="List available transports")
 	parser.add_option("-t", "--transport", dest="transport",default=None, help="Transport to use")
-	parser.add_option("-r", "--resume", dest="id",default=None, help="Resume session id")
-	parser.add_option("-s", "--sessions", dest="sessions",default=None, help="List session ids")
+	parser.add_option("-r", "--resume", dest="sessionId",default=None, help="Resume session id")
+	parser.add_option("-s", "--sessions", dest="sessions",action="store_true", help="List session ids")
 	(o, a) = parser.parse_args()
 	
 	#list transports
@@ -185,6 +188,10 @@ if __name__ == '__main__':
 		else:
 			module = imp.load_source('client', "transports/" + o.transport + "/client.py")
 		
-		showc = Showc(module, o.id)
+		cmd = None
+		if o.sessions:
+			cmd = TransportMessage.CMD_LIST_SESSIONS
+		
+		showc = Showc(module, o.sessionId, cmd)
 		showc.start()
 

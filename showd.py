@@ -7,12 +7,14 @@ import glob
 import sys
 import imp
 import logging
+import random
 
 class Showd:
 	def __init__(self,cmd=None, module=None): #module must contain a Server class
 		logging.basicConfig(filename='showd.log',level=logging.DEBUG)
 		self.multi = Multiplex(cmd)
 		self.sessions = {}
+		self.threads = {}
 		self.last_dump = ""
 		self.module = module
 		if module is not None:
@@ -23,53 +25,82 @@ class Showd:
 				self.multi.die()
 				sys.exit(1)
 	
-	def _create_session(self, id, columns, rows):
+	def _create_session(self, columns, rows):
 		if not (columns > 2 and columns < 256 and rows > 2 and rows < 100):
 				columns, rows= 80, 25
 		term = self.multi.create(columns, rows)
-		self.sessions[id] = term
 		
-		return term
+		sessionId = random.randint(1, 100000)
+		self.sessions[sessionId] = term
+		
+		return term, sessionId
 	
-	def init_session(self, id, columns, rows):
-		if id in self.sessions:
-			#term = self.sessions[id]
+	def init_session(self, clientId, sessionId, columns, rows):
+		if sessionId is not None and sessionId in self.sessions:
 			#TODO : update dimensions
-			self.log_info("existing session")
+			self.log_info("existing session : "+sessionId)
+			term = self.sessions[sessionId]
 		else:
-			term = self._create_session(id, columns, rows)
-			self.log_info("new connection id:"+id+" rows:"+str(rows)+" cols:"+str(columns))
-			server_instance = self.module.ServerInstance(self, id)
-			server_instance.start()
+			term, sessionId = self._create_session(columns, rows)
+			self.log_info("new connection sessionId:"+str(sessionId)+" cols:"+str(columns)+" rows:"+str(rows))
+			
+		server_instance = self.module.ServerInstance(self, clientId, sessionId)
+		self.add_thread(clientId, server_instance)
+		server_instance.start()
+	
+	def add_thread(self, clientId, server_instance):
+		if clientId in self.threads:
+			self.threads[clientId].stop()
 		
+		self.threads[clientId] = server_instance
+	
+	def stop_thread(self, clientId):
+		self.threads[clientId].stop()
+		del self.threads[clientId]
+		
+	def list_sessions(self, clientId):
+		sessionId = random.randint(1, 100000)
+		self.log_info("new sessionId for list_sessions :"+str(sessionId))
+		self.sessions[sessionId] = '#' + '\n#'.join(map(str,sorted(self.sessions)))
+		server_instance = self.module.ServerInstance(self, clientId, sessionId)
+		self.add_thread(clientId, server_instance)
+		server_instance.start()
+	
 	def log_debug(self, msg):
 		logging.debug("showd - " + msg)	
 
 	def log_info(self, msg):
 		logging.info("showd - " + msg)
 	
-	def update(self, id, input):
+	def update(self, sessionId, clientId, input):
 		ret = result = ""
-		if id in self.sessions:
-			term = self.sessions[id]
-		
-			if input:
-				self.multi.proc_write(term, input)
-			time.sleep(0.002)
-			dump=self.multi.dump(term, 1, False)
-			
-			if isinstance(dump,str):
-				result = dump
-			else:
-				result="wrong"
-				del self.sessions[id]
-			
-			#check if something new has appeared on the screen
-			#if not return nothing
-			ret = result
-			if result == self.last_dump:
-				ret = ""
-			self.last_dump = result
+		stop = False
+		if sessionId in self.sessions:
+			o = self.sessions[sessionId]
+			if isinstance(o,str):
+				#this is a command
+				ret = o
+				del self.sessions[sessionId]
+				self.stop_thread(clientId)
+			else: #this is a terminal
+				term = o
+				if input:
+					self.multi.proc_write(term, input)
+				time.sleep(0.002)
+				dump=self.multi.dump(term, 1, False)
+				
+				if isinstance(dump,str):
+					result = dump
+				else:
+					result="wrong"
+					del self.sessions[sessionId]
+				
+				#check if something new has appeared on the screen
+				#if not return nothing
+				ret = result
+				if result == self.last_dump:
+					ret = ""
+				self.last_dump = result
 		
 		return ret
 
