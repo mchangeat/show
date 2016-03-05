@@ -15,7 +15,7 @@ class Showd:
 		self.multi = Multiplex(cmd)
 		self.sessions = {}
 		self.threads = {}
-		self.last_dump = ""
+		#self.last_dump = ""
 		self.module = module
 		if module is not None:
 			try:
@@ -38,7 +38,7 @@ class Showd:
 	def init_session(self, clientId, sessionId, columns, rows):
 		if sessionId is not None and sessionId in self.sessions:
 			#TODO : update dimensions
-			self.log_info("existing session : "+sessionId)
+			self.log_info("existing session : "+str(sessionId))
 			term = self.sessions[sessionId]
 		else:
 			term, sessionId = self._create_session(columns, rows)
@@ -59,9 +59,10 @@ class Showd:
 		del self.threads[clientId]
 		
 	def list_sessions(self, clientId):
+		#todo handle rights
 		sessionId = random.randint(1, 100000)
 		self.log_info("new sessionId for list_sessions :"+str(sessionId))
-		self.sessions[sessionId] = '#' + '\n#'.join(map(str,sorted(self.sessions)))
+		self.sessions[sessionId] = 'Current opened sessions:\n- ' + '\n- '.join(map(str,sorted(self.sessions)))
 		server_instance = self.module.ServerInstance(self, clientId, sessionId)
 		self.add_thread(clientId, server_instance)
 		server_instance.start()
@@ -90,17 +91,17 @@ class Showd:
 				dump=self.multi.dump(term, 1, False)
 				
 				if isinstance(dump,str):
-					result = dump
+					ret = dump
 				else:
-					result="wrong"
+					ret="wrong"
 					del self.sessions[sessionId]
 				
 				#check if something new has appeared on the screen
 				#if not return nothing
-				ret = result
-				if result == self.last_dump:
-					ret = ""
-				self.last_dump = result
+				#ret = result
+				#if result == self.last_dump:
+				#	ret = ""
+				#self.last_dump = result
 		
 		return ret
 

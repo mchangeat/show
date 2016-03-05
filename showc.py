@@ -16,7 +16,9 @@ from shell_transport import TransportMessage
 class Showc:
 	def __init__(self, module, sessionId, cmd): #module must contain a Client class
 		logging.basicConfig(filename='showc.log',level=logging.DEBUG)
-		self.sessionId = sessionId
+		self.sessionId = None
+		if isinstance(sessionId, str):
+			self.sessionId = int(sessionId)
 		self.cmd = cmd
 		self.clientId = random.randint(1, 100000)
 		if module is not None:

@@ -27,7 +27,7 @@ class Client(ShellTransportc):
 		
 	def _update_time(self):
 		while True:
-			self.showc.log_debug("wait for message")
+			self.showc.log_debug("wait for message clientId %d" % self.clientId)
 			self.rdtoc = open(self.dtoc, 'r')
 			input = self.rdtoc.read()
 			self.showc.log_debug("input:"+input)
@@ -51,12 +51,12 @@ class Client(ShellTransportc):
 		
 		self.clock = threading.Thread(target=self._update_time, args=())
 		self.clock.daemon = True
-		self.showc.log_info("local transport started")
+		self.showc.log_info("local transport started clientId %d" % self.clientId)
 		self.clock.start()
 		
 
 	def close(self):
-		self.showc.log_info("close")
+		self.showc.log_info("close clientId %d" % self.clientId)
 		try:
 			if self.rctod is not None:
 				self.rctod.close()

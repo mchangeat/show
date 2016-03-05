@@ -37,7 +37,6 @@ class Server(ShellTransportd):
 			if msg.cmd == TransportMessage.CMD_INIT_SESSION:
 				self.showd.init_session(msg.clientId, msg.sessionId, msg.columns, msg.rows)
 			elif msg.cmd == TransportMessage.CMD_LIST_SESSIONS:
-				#todo authorisations
 				self.showd.list_sessions(msg.clientId)
 			else:
 				self.showd.log_info("Bad command received:"+str(msg.cmd))
@@ -50,6 +49,7 @@ class ServerInstance:
 		self.lock = threading.Lock()
 		self.key_input = ""
 		self.stopped = False
+		self.last_dump = ""
 		
 		self.ctod = tempfile.gettempdir() + os.path.sep + "ctod-" + str(self.clientId)
 		self.dtoc = tempfile.gettempdir() + os.path.sep + "dtoc-" + str(self.clientId)
@@ -94,12 +94,12 @@ class ServerInstance:
 		input = ""
 		while not self.stopped:
 			screen = self.showd.update(self.sessionId, self.clientId, input)
-			if len(screen) >0:
-				self.showd.log_debug("screen:"+screen)
-			if screen != "":
+			if len(screen) > 0 and self.last_dump != screen:
+				self.showd.log_debug("screen for %d: %s" % (self.clientId, screen))
 				self.rdtoc = open(self.dtoc, 'w+')
 				self.rdtoc.write(screen)
 				self.rdtoc.close()
+				self.last_dump = screen
 			
 			if not self.stopped:
 				self.lock.acquire()
