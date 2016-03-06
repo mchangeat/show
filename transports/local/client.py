@@ -4,6 +4,7 @@ from array import array
 import os
 import threading
 import tempfile
+import logging
 import time
 
 class Client(ShellTransportc):
@@ -27,10 +28,10 @@ class Client(ShellTransportc):
 		
 	def _update_time(self):
 		while True:
-			self.showc.log_debug("wait for message clientId %d" % self.clientId)
+			logging.debug("wait for message clientId " + self.clientId)
 			self.rdtoc = open(self.dtoc, 'r')
 			input = self.rdtoc.read()
-			self.showc.log_debug("input:"+input)
+			logging.debug("input:"+input)
 			self.rdtoc.close()
 			self.showc.update(input)
 	
@@ -51,12 +52,12 @@ class Client(ShellTransportc):
 		
 		self.clock = threading.Thread(target=self._update_time, args=())
 		self.clock.daemon = True
-		self.showc.log_info("local transport started clientId %d" % self.clientId)
+		logging.info("local transport started clientId" + self.clientId)
 		self.clock.start()
 		
 
 	def close(self):
-		self.showc.log_info("close clientId %d" % self.clientId)
+		logging.info("close clientId " + self.clientId)
 		try:
 			if self.rctod is not None:
 				self.rctod.close()

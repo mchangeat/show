@@ -4,10 +4,12 @@ from shell_transport import TransportMessage
 import threading
 import time
 import tempfile
+import logging
 
 class Server(ShellTransportd):
 	def __init__(self, showd):
 		self.showd = showd
+		logging.info("Starting server local transport")
 		
 		self.tube = tempfile.gettempdir() + os.path.sep +"tube"
 		
@@ -21,6 +23,7 @@ class Server(ShellTransportd):
 		clock_inputs = threading.Thread(target=self._read_new_connections, args=())
 		clock_inputs.daemon = True
 		clock_inputs.start()
+		logging.info("server local transport started")
 		
 	
 	def _read_new_connections(self):
@@ -32,14 +35,14 @@ class Server(ShellTransportd):
 			
 			msg = TransportMessage.from_JSON(r)
 			
-			self.showd.log_debug("msg received:"+r)
+			logging.debug("msg received:"+r)
 			
 			if msg.cmd == TransportMessage.CMD_INIT_SESSION:
 				self.showd.init_session(msg.clientId, msg.sessionId, msg.columns, msg.rows)
 			elif msg.cmd == TransportMessage.CMD_LIST_SESSIONS:
 				self.showd.list_sessions(msg.clientId)
 			else:
-				self.showd.log_info("Bad command received:"+str(msg.cmd))
+				logging.info("Bad command received:"+str(msg.cmd))
 
 class ServerInstance:
 	def __init__(self, showd, clientId, sessionId):
@@ -69,10 +72,10 @@ class ServerInstance:
 		clock_inputs.daemon = True
 		clock_inputs.start()
 		
-		self.showd.log_info("local transport %d started" % self.clientId)
+		logging.info("local transport %s started" % self.clientId)
 	
 	def stop(self):
-		self.showd.log_info("local transport stopping")
+		logging.info("local transport stopping")
 		self.stopped = True
 		
 	def _read_inputs(self):
@@ -80,7 +83,7 @@ class ServerInstance:
 		while not self.stopped:
 			self.rctod = open(self.ctod, 'r')
 			r = self.rctod.read()
-			self.showd.log_debug("read :"+r)
+			logging.debug("read :"+r)
 			self.rctod.close()
 			
 			if not self.stopped:
@@ -88,14 +91,14 @@ class ServerInstance:
 				self.key_input = self.key_input + r
 				self.lock.release()
 		
-		self.showd.log_debug("local transport %d thread _read_inputs stopped" % self.clientId)
+		logging.debug("local transport %s thread _read_inputs stopped" % self.clientId)
 
 	def _update_time(self):
 		input = ""
 		while not self.stopped:
 			screen = self.showd.update(self.sessionId, self.clientId, input)
 			if len(screen) > 0 and self.last_dump != screen:
-				self.showd.log_debug("screen for %d: %s" % (self.clientId, screen))
+				logging.debug("screen for %s: %s" % (self.clientId, screen))
 				self.rdtoc = open(self.dtoc, 'w+')
 				self.rdtoc.write(screen)
 				self.rdtoc.close()
@@ -109,7 +112,7 @@ class ServerInstance:
 			
 			time.sleep(0.1)
 		
-		self.showd.log_debug("local transport %d thread _update_time stopped" % self.clientId)
+		logging.debug("local transport %s thread _update_time stopped" % self.clientId)
 	
 	def __del__(self):
-		self.showd.log_info("local transport %d stopped" % self.clientId)
+		logging.info("local transport %s stopped" % self.clientId)

@@ -7,11 +7,13 @@ import glob
 import sys
 import imp
 import logging
-import random
+import logging.config
+import uuid
 
 class Showd:
 	def __init__(self,cmd=None, module=None): #module must contain a Server class
-		logging.basicConfig(filename='showd.log',level=logging.DEBUG)
+		logging.config.fileConfig('showd_logging.ini')
+		logging.info("Starting showd")
 		self.multi = Multiplex(cmd)
 		self.sessions = {}
 		self.threads = {}
@@ -24,13 +26,15 @@ class Showd:
 				print "Problem with transport module, dying..."
 				self.multi.die()
 				sys.exit(1)
+		
+		logging.info("Showd started")
 	
 	def _create_session(self, columns, rows):
 		if not (columns > 2 and columns < 256 and rows > 2 and rows < 100):
 				columns, rows= 80, 25
 		term = self.multi.create(columns, rows)
 		
-		sessionId = random.randint(1, 100000)
+		sessionId = str(uuid.uuid4())
 		self.sessions[sessionId] = term
 		
 		return term, sessionId
@@ -38,11 +42,11 @@ class Showd:
 	def init_session(self, clientId, sessionId, columns, rows):
 		if sessionId is not None and sessionId in self.sessions:
 			#TODO : update dimensions
-			self.log_info("existing session : "+str(sessionId))
+			logging.info("existing session : "+str(sessionId))
 			term = self.sessions[sessionId]
 		else:
 			term, sessionId = self._create_session(columns, rows)
-			self.log_info("new connection sessionId:"+str(sessionId)+" cols:"+str(columns)+" rows:"+str(rows))
+			logging.info("new connection sessionId:"+str(sessionId)+" cols:"+str(columns)+" rows:"+str(rows))
 			
 		server_instance = self.module.ServerInstance(self, clientId, sessionId)
 		self.add_thread(clientId, server_instance)
@@ -60,8 +64,8 @@ class Showd:
 		
 	def list_sessions(self, clientId):
 		#todo handle rights
-		sessionId = random.randint(1, 100000)
-		self.log_info("new sessionId for list_sessions :"+str(sessionId))
+		sessionId = str(uuid.uuid4())
+		logging.info("new sessionId for list_sessions :"+str(sessionId))
 		self.sessions[sessionId] = 'Current opened sessions:\n- ' + '\n- '.join(map(str,sorted(self.sessions)))
 		server_instance = self.module.ServerInstance(self, clientId, sessionId)
 		self.add_thread(clientId, server_instance)

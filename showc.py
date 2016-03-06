@@ -5,22 +5,23 @@ import curses
 import base64
 import signal
 import sys
-import random
+import uuid
 import optparse
 import glob
 import imp
 import traceback
 import logging
+import logging.config
 from shell_transport import TransportMessage
 
 class Showc:
 	def __init__(self, module, sessionId, cmd): #module must contain a Client class
-		logging.basicConfig(filename='showc.log',level=logging.DEBUG)
+		logging.config.fileConfig('showc_logging.ini')
 		self.sessionId = None
 		if isinstance(sessionId, str):
 			self.sessionId = int(sessionId)
 		self.cmd = cmd
-		self.clientId = random.randint(1, 100000)
+		self.clientId = str(uuid.uuid4())
 		if module is not None:
 			try:
 				self.shell_transport = module.Client(self, self.clientId, self.sessionId)
